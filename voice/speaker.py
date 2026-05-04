@@ -108,6 +108,13 @@ class Speaker:
                     return
                 except Exception as e:
                     print(f"[Speaker] Piper speak error: {e}", flush=True)
+                    try:
+                        import sounddevice as sd
+                        sd.stop()
+                    except Exception:
+                        pass
+                    self._voice = None  # switch to PowerShell from now on
+                    return              # skip PowerShell this call to avoid double-speak
             if _ON_WINDOWS:
                 self._speak_ps(text)
 

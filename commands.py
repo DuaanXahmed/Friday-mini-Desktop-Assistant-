@@ -43,6 +43,17 @@ def _find_in_workspace(name: str) -> str | None:
 # File Operations
 # ---------------------------------------------------------------------------
 
+_EXT_PROCESS = {
+    ".txt":  "notepad.exe",
+    ".docx": "WINWORD.EXE",
+    ".xlsx": "EXCEL.EXE",
+    ".pdf":  "msedge.exe",
+    ".py":   "Code.exe",
+    ".csv":  "EXCEL.EXE",
+    ".json": "Code.exe",
+    ".md":   "notepad.exe",
+}
+
 _FILE_TYPE_KEYWORDS = {
     "docx": ("word", "docx", "word document", "word file"),
     "pdf":  ("pdf", "pdf file", "pdf document"),
@@ -354,9 +365,20 @@ def close_app(entities: dict):
         )
         return
 
-    proc_name = APP_PROCESS_NAMES.get(app_name.lower(), "").lower()
-    killed = 0
+    ext = os.path.splitext(app_name)[1].lower()
+    if ext:
+        # Looks like a filename — resolve via extension
+        proc_name = _EXT_PROCESS.get(ext, "").lower()
+    else:
+        # Check workspace for a file with this stem
+        resolved = _find_in_workspace(app_name)
+        if resolved:
+            file_ext = os.path.splitext(resolved)[1].lower()
+            proc_name = _EXT_PROCESS.get(file_ext, "").lower()
+        else:
+            proc_name = APP_PROCESS_NAMES.get(app_name.lower(), "").lower()
 
+    killed = 0
     for proc in psutil.process_iter(["name", "pid"]):
         try:
             pname = proc.info["name"].lower()
