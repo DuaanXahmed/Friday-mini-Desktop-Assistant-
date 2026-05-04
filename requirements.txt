@@ -1,0 +1,11 @@
+python-dotenv
+speechrecognition
+pyaudio
+openai
+psutil
+pyautogui
+python-docx
+reportlab
+sounddevice
+numpy
+requests

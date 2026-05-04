@@ -1,0 +1,39 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyd
+*.pyo
+*.pyw
+.Python
+
+# Distribution / build
+build/
+dist/
+*.egg-info/
+*.egg
+
+# Environment — NEVER commit secrets
+.env
+*.env
+.env.*
+!.env.example
+
+# Runtime workspace (created automatically)
+friday_workspace/
+
+# Claude Code local settings
+.claude/
+
+# IDE
+.vscode/
+.idea/
+*.iml
+.cursor/
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs
+*.log
