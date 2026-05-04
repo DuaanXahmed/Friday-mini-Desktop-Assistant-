@@ -150,6 +150,8 @@ def main() -> None:
             print(f"\033[93mYou said: {raw}\033[0m", flush=True)
             handle_command(raw)
 
+
+
             # Stay active — next command needs no wake word
 
         except (KeyboardInterrupt, FridayShutdown):

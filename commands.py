@@ -546,6 +546,8 @@ def execute(parsed: dict):
     if fn:
         try:
             fn(entities)
+        except FridayShutdown:
+            raise
         except Exception as e:
             print(f"{_RE}[ERROR]  {intent} failed: {e}{_RS}")
             speak("I ran into a problem with that command, sir. Please try again.")
