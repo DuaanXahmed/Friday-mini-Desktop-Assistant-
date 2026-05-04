@@ -4,6 +4,7 @@ import os
 import platform
 import subprocess
 import threading
+import time
 from pathlib import Path
 
 from config import TTS_RATE, TTS_VOLUME
@@ -132,6 +133,7 @@ class Speaker:
             return
         audio = np.concatenate(chunks)
         sd.play(audio, samplerate=self._sample_rate, blocking=True)
+        time.sleep(0.25)  # drain hardware audio buffer before mic can open
 
     # ── powershell fallback ───────────────────────────────────────────────
 
@@ -150,5 +152,6 @@ class Speaker:
                 stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
             )
             proc.wait()
+            time.sleep(0.25)  # drain hardware audio buffer before mic can open
         except Exception as e:
             print(f"[Speaker] PowerShell TTS error: {e}", flush=True)

@@ -68,6 +68,7 @@ def listen_for_wake_word() -> bool:
 
 def listen_for_command() -> str | None:
     """Capture one utterance after the wake word. Returns text or None."""
+    time.sleep(0.5)  # keep mic closed until TTS audio has fully left the speakers
     try:
         with sr.Microphone() as source:
             audio = _recognizer.listen(
