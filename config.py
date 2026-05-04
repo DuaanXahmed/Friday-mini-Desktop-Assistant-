@@ -101,9 +101,12 @@ MODES = {
 # ──────────────────────────────────────────────
 
 RESPONSES = [
-    "On it, sir.",
+    "On it, boss.",
     "Right away, boss.",
-    "Consider it done, sir.",
+    "Consider it done, boss.",
     "Of course, boss.",
-    "Understood, sir.",
+    "Understood, boss.",
+    "Already on it, boss.",
+    "Leave it to me, boss.",
+    "Say no more, boss.",
 ]

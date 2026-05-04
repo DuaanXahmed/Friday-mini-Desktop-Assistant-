@@ -11,11 +11,15 @@ _RE = "\033[91m"; _RS = "\033[0m"
 # ---------------------------------------------------------------------------
 
 _INTENT_SYSTEM = """
-You are an intent extraction engine for a voice assistant called FRIDAY.
-Given a user utterance, return ONLY a valid JSON object. No explanation. No markdown. No code fences.
+You are FRIDAY, a sharp and capable AI voice assistant. Your user is your boss.
+Given a user utterance, return ONLY a valid JSON object with exactly two keys:
+  "intent"   — one of the valid intent names below
+  "entities" — an object with the fields for that intent (can be {})
+
+No explanation. No markdown. No code fences. Just raw JSON.
 
 Valid intents and their entity fields:
-  generate_file         — { "topic": "<what to write about>", "filename": "<optional, e.g. notes.txt>" }
+  generate_file         — { "topic": "<what to write about>", "filename": "<optional>" }
   create_file           — { "filename": "<name.ext>" }
   create_multiple_files — { "filenames": ["a.txt", "b.pdf", ...] }
   delete_all_files      — {}
@@ -36,21 +40,37 @@ Valid intents and their entity fields:
   system_status         — {}
   battery               — {}
   cpu                   — {}
-  general_query         — { "answer": "<direct, conversational answer in 1-2 sentences>" }
+  general_query         — { "answer": "<your answer, spoken naturally, addressed to boss>" }
 
 Disambiguation rules:
-- generate_file: user wants content WRITTEN and SAVED (e.g. "write a file about X", "create a document on X").
-- create_file: user wants a blank file created with a specific name. No content generation.
-- delete_all_files: user says "delete all", "clear everything", "wipe workspace", "fresh start".
-- delete_multiple_files: user names 2+ specific files for deletion.
-- close_app: user wants an app CLOSED/QUIT. Never route "close X" to open_app.
-- open_app: user wants an app LAUNCHED/OPENED.
-- tell_datetime: user asks for BOTH date AND time together.
-- system_status: user wants a full CPU + battery report.
-- general_query: anything factual, conversational, or definitional. Answer directly and naturally.
-  Good general_query answers are short, clear, and sound like a knowledgeable assistant speaking.
-  Do not say "I don't know" — give the best answer you can in 1-2 sentences.
+- generate_file: user wants AI to WRITE content and save it. ("write a file about X", "create a doc on X")
+- create_file: blank file only — no content generation. User gives a specific name.
+- delete_all_files: "delete all", "clear everything", "wipe workspace", "fresh start".
+- delete_multiple_files: user names 2+ specific files.
+- close_app: user wants an app CLOSED. Never route "close X" to open_app.
+- open_app: user wants an app LAUNCHED.
+- tell_datetime: user asks for BOTH date AND time.
+- system_status: user wants full CPU + battery report.
+- general_query: anything factual, conversational, analytical, creative, or definitional.
+  Write the answer as FRIDAY speaking directly to boss. Be confident, natural, and clear.
+  Simple questions get one punchy sentence. Complex topics can use 3-4 sentences.
+  Never say "I don't know" — always give the best informed answer.
+  Do NOT add preamble like "Great question" or "Of course". Just answer.
 """.strip()
+
+# ---------------------------------------------------------------------------
+# Direct Q&A system prompt (used when intent routing fails or for rich queries)
+# ---------------------------------------------------------------------------
+
+_QA_SYSTEM = (
+    "You are FRIDAY, a sharp and capable personal AI voice assistant. "
+    "Your user is your boss — address them as 'boss' naturally in your replies. "
+    "Answer questions directly, confidently, and conversationally. "
+    "Match answer length to the question: one sentence for simple facts, "
+    "a few sentences for complex topics. "
+    "No markdown, no bullet points, no numbered lists — clean spoken language only. "
+    "Never start with 'Great question' or 'Of course'. Just answer."
+)
 
 # ---------------------------------------------------------------------------
 # Content generation system prompt
@@ -84,11 +104,11 @@ def _get_client():
 # Public API
 # ---------------------------------------------------------------------------
 
-def ask_llm(prompt: str, system: str = "You are a helpful assistant. Be concise.") -> str:
+def ask_llm(prompt: str, system: str = _QA_SYSTEM) -> str:
     """Send a prompt to the LLM and return the plain-text reply."""
     client = _get_client()
     if client is None:
-        return "My AI module is offline. Please check your OpenAI API key."
+        return "My AI module is offline, boss. Please check your OpenAI API key."
     try:
         response = client.chat.completions.create(
             model=OPENAI_MODEL,
@@ -100,7 +120,7 @@ def ask_llm(prompt: str, system: str = "You are a helpful assistant. Be concise.
         )
         return response.choices[0].message.content.strip()
     except Exception as e:
-        return f"I couldn't reach the AI: {e}"
+        return f"I couldn't reach the AI, boss: {e}"
 
 
 def generate_content(topic: str) -> str:
@@ -111,12 +131,16 @@ def generate_content(topic: str) -> str:
 def fallback(text: str) -> dict | None:
     """
     Classify *text* into a structured intent dict via OpenAI.
-    Returns a dict with at least an 'intent' key, or None on failure.
+
+    Always returns {"intent": ..., "entities": {...}} or None on total failure.
+    If intent classification produces malformed JSON, falls back to a direct
+    Q&A call so the user still gets a useful answer.
     """
     client = _get_client()
     if client is None:
         return None
 
+    # ── Step 1: attempt intent classification ────────────────────────────────
     try:
         response = client.chat.completions.create(
             model=OPENAI_MODEL,
@@ -127,13 +151,39 @@ def fallback(text: str) -> dict | None:
             ],
         )
         raw = response.choices[0].message.content.strip()
-        # Strip any accidental markdown code fences
         raw = re.sub(r"^```(?:json)?\s*|\s*```$", "", raw, flags=re.MULTILINE).strip()
-        return json.loads(raw)
+        data = json.loads(raw)
+
+        intent   = data.get("intent")
+        entities = data.get("entities", {})
+
+        if not intent:
+            raise ValueError("LLM returned JSON without an intent key")
+
+        # Normalise: if the LLM put entity keys at the top level instead of
+        # nesting them under "entities", lift them out properly.
+        if not isinstance(entities, dict):
+            entities = {}
+        if not entities:
+            entities = {k: v for k, v in data.items() if k != "intent"}
+
+        return {"intent": intent, "entities": entities}
 
     except json.JSONDecodeError as e:
-        print(f"{_RE}[ERROR]  Fallback JSON parse: {e}{_RS}")
+        print(f"{_RE}[WARN]   Fallback JSON parse failed ({e}) — trying direct Q&A{_RS}")
+
+    except ValueError as e:
+        print(f"{_RE}[WARN]   Fallback intent missing ({e}) — trying direct Q&A{_RS}")
+
     except Exception as e:
         print(f"{_RE}[ERROR]  Fallback API: {e}{_RS}")
+        return None
+
+    # ── Step 2: direct Q&A as last resort ────────────────────────────────────
+    try:
+        answer = ask_llm(text)
+        return {"intent": "general_query", "entities": {"answer": answer}}
+    except Exception as e:
+        print(f"{_RE}[ERROR]  Direct Q&A fallback: {e}{_RS}")
 
     return None

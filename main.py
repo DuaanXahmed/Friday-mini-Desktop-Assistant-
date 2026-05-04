@@ -90,7 +90,7 @@ def handle_command(raw: str) -> None:
                 execute(parsed)
             else:
                 speak(
-                    "I didn't quite understand that, sir. "
+                    "I didn't quite understand that, boss. "
                     "Try saying something like: open Chrome, create file, "
                     "what's the time, or ask me a question."
                 )
@@ -99,7 +99,7 @@ def handle_command(raw: str) -> None:
             raise
         except Exception as e:
             log_error(f"Command failed: {e}")
-            speak("Something went wrong with that command, sir. Please try again.")
+            speak("Something went wrong with that command, boss. Please try again.")
 
 
 # ──────────────────────────────────────────────
@@ -116,7 +116,7 @@ def main() -> None:
     if AUTO_OPEN_WORKSPACE:
         open_workspace()
 
-    speak("FRIDAY online, sir. Say Friday whenever you need me.")
+    speak("FRIDAY online, boss. Say Friday whenever you need me.")
 
     active = False
     misses = 0
@@ -129,7 +129,7 @@ def main() -> None:
                 log_status(f"Listening for '{WAKE_WORD}'...")
                 if not listen_for_wake_word():
                     continue
-                speak("Yes, sir? What can I do for you?")
+                speak("Yes, boss? What can I do for you?")
                 active = True
 
             # ── Phase 2: capture command ──────────────────────────────────
@@ -139,7 +139,7 @@ def main() -> None:
             if not raw:
                 misses += 1
                 if misses < _MAX_MISSES:
-                    speak("Say again, sir.")
+                    speak("Say again, boss.")
                 else:
                     speak("Going to standby. Say Friday when ready.")
                     active = False
@@ -165,13 +165,13 @@ if __name__ == "__main__":
     try:
         main()
     except FridayShutdown:
-        print("\n[FRIDAY] Shutting down. Goodbye, sir.")
+        print("\n[FRIDAY] Shutting down. Goodbye, boss.")
     except KeyboardInterrupt:
         try:
-            speak("Friday shutting down. Goodbye, sir.")
+            speak("Friday shutting down. Goodbye, boss.")
         except Exception:
             pass
-        print("\n[FRIDAY] Shutting down. Goodbye, sir.")
+        print("\n[FRIDAY] Shutting down. Goodbye, boss.")
     except Exception:
         import traceback
         print("\n" + "═" * 58)
