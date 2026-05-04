@@ -133,6 +133,7 @@ INTENT_MAP = {
         "power off friday", "close friday", "terminate friday",
         "you can go", "you're dismissed", "we're done",
         "that will be all", "i'm done", "enough for now",
+        
         "go away friday","You can sleep now"
     ],
 
@@ -335,7 +336,7 @@ def _extract_app_name(text: str, skip_words: set) -> str | None:
         if app in text:
             return app
     match = re.search(
-        r"\b(?:open|close|launch|start|run|quit|kill|terminate|exit|fire up|pull up|boot up|load up)\s+([\w]+)",
+        r"\b(?:open|close|launch|start|run|quit|kill|terminate|exit|fire up|pull up|boot up|load up)\s+([\w]+(?:\.[\w]+)?)",
         text,
     )
     if match:

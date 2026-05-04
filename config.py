@@ -22,13 +22,13 @@ OPENAI_MODEL = "gpt-4o-mini"
 
 # Speech recognition settings
 MIC_TIMEOUT  = 6           # seconds to wait for speech to start
-PHRASE_LIMIT = 20        # max seconds per phrase
+PHRASE_LIMIT = 10        # max seconds per phrase
 SR_LANGUAGE  = "en-US"
 
 # Text-to-speech settings
 TTS_RATE   = 195           # words per minute
 TTS_VOLUME = 0.95          # 0.0 – 1.0
-INTERRUPT_WORD = "cancel"
+INTERRUPT_WORD = "friday"
 
 # Auto-open workspace folder in Explorer at startup
 AUTO_OPEN_WORKSPACE = True
